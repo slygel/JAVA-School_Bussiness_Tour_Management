@@ -454,6 +454,10 @@ public class ManageTour extends javax.swing.JFrame {
                 MessageDialog.showInfoDialog(this, "Số lượng tham quan không được dưới 10 người", "Thông báo");
                 return;
             }
+            if(!isDate(tourDate)){
+                MessageDialog.showInfoDialog(this, "Nhập ngày không đúng định dạng", "Thông báo");
+                return;
+            }
             if(tourServices.isExistedTourCode(tourCode)){
                 MessageDialog.showInfoDialog(this, "Mã chuyến tham quan đã tồn tại", "Thông báo");
                 return;

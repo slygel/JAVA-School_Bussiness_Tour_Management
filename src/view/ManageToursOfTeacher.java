@@ -357,12 +357,13 @@ public class ManageToursOfTeacher extends javax.swing.JFrame {
             int tourId = tourService.getIdByTourCode(tourCode);
             System.out.println("TourId: " + tourId);
             Tour tour = tourService.getTourById(tourId);
-            
+
             if(confirm == 0){
                 tourService.updateTeacherIdByTourId(tourId);
             }
             loadTableData();
         } catch (Exception e) {
+            e.printStackTrace();
         }
     }//GEN-LAST:event_deleteTourForTeacherActionPerformed
 

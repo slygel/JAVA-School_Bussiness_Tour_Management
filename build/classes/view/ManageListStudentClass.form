@@ -248,6 +248,9 @@
         </Property>
         <Property name="text" type="java.lang.String" value="T&#x1ea3;i &#x1ea3;nh l&#xea;n"/>
       </Properties>
+      <Events>
+        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="imageBrowseActionPerformed"/>
+      </Events>
     </Component>
     <Component class="javax.swing.JLabel" name="jLabel1">
       <Properties>

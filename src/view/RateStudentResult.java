@@ -38,6 +38,8 @@ public class RateStudentResult extends javax.swing.JFrame {
     public RateStudentResult(Tour tour , Student student, boolean isShowData){
         this.selectedTour = tour;
         this.selectedStudent = student;
+        this.isShowData = isShowData;
+        studentTourService = new StudentTourService();
         initComponents();
         setVisible(true);
         setLocationRelativeTo(null);
@@ -359,17 +361,29 @@ public class RateStudentResult extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btn_backActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_backActionPerformed
-        if(isShowData){
-            dispose();
-            TransmittedDataShowData showSata = new TransmittedDataShowData("studentTookPlaceTours", "studentAndTeacherHome", selectedTour.getId(), selectedTour.getTeacherId(), false);
-            ShowData screen = new ShowData(showSata);
-            screen.setLocationRelativeTo(null);
-            screen.setVisible(true);
-        }else{
-            dispose();
-            ManageTourStudent screen = new ManageTourStudent(this.selectedTour);
-            screen.setLocationRelativeTo(null);
-            screen.setVisible(true);
+        try{
+            int rate = getTotalRate();
+            if(rate < 0 || rate > 100)
+            {
+                 MessageDialog.showInfoDialog(this, "Điểm không hợp kệ", "Thông báo");
+                 return;
+            }
+            studentTourService.updateRateStudent(this.selectedStudent.getId(), this.selectedTour.getId(), rate);
+            this.selectedTour = tourService.getTourById(this.selectedTour.getId());
+            if(isShowData){
+                dispose();
+                TransmittedDataShowData showSata = new TransmittedDataShowData("studentTookPlaceTours", "teacherAndStudentHome", selectedTour.getId(), selectedTour.getTeacherId(), false);
+                ShowData screen = new ShowData(showSata);
+                screen.setLocationRelativeTo(null);
+                screen.setVisible(true);
+            }else{
+                dispose();
+                ManageTourStudent screen = new ManageTourStudent(this.selectedTour);
+                screen.setLocationRelativeTo(null);
+                screen.setVisible(true);
+            }
+        }catch(Exception e){
+            e.printStackTrace();
         }
     }//GEN-LAST:event_btn_backActionPerformed
 
@@ -450,11 +464,9 @@ public class RateStudentResult extends javax.swing.JFrame {
                 return;
             }
             studentTourService.updateRateStudent(this.selectedStudent.getId(), this.selectedTour.getId(), rate);
-            this.selectedTour = tourService.getTourById(selectedTour.getId());
             if(isShowData){
                 dispose();
-                TransmittedDataShowData showSata = new TransmittedDataShowData("studentTookPlaceTours", "TeacherAndStudentHome", selectedTour.getId(), selectedTour.getTeacherId(), false);
-                System.out.println(showSata);
+                TransmittedDataShowData showSata = new TransmittedDataShowData("studentTookPlaceTours", "teacherAndStudentHome", selectedTour.getId(), selectedTour.getTeacherId(), false);
                 ShowData screen = new ShowData(showSata);
                 screen.setLocationRelativeTo(null);
                 screen.setVisible(true);

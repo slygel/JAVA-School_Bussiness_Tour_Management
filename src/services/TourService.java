@@ -90,4 +90,8 @@ public class TourService {
     public Tour getTourByTeacherId(int teacherId){
         return tourDao.getTourByTeacherId(teacherId);
     }
+    
+    public Tour getTourByStudentId(int studentId){
+        return tourDao.getTourByStudentId(studentId);
+    }
 }

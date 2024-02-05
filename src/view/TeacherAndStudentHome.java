@@ -55,15 +55,19 @@ public class TeacherAndStudentHome extends javax.swing.JFrame {
             MessageDialog.showErrorDialog(this, "Phải đăng nhập với tài khoản sinh viên để sử dụng GUI này ", "Lỗi");
             return;
         }
-        
-        ratedTour.setVisible(false);
+         
         initializeTableOfTours();
+        ratedTour.setVisible(false);
         evaluateBtn.setVisible(false);
+        addTour.setVisible(false);
         showStudentsOfTour.setVisible(false);
         if(loggedInTeacher != null){
             evaluateBtn.setVisible(true);
             addTour.setVisible(false);
             showStudentsOfTour.setVisible(true);
+        }
+        if(loggedInStudent != null){
+            addTour.setVisible(true);
         }
     }
 
@@ -160,7 +164,7 @@ public class TeacherAndStudentHome extends javax.swing.JFrame {
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
+            .addGroup(jPanel1Layout.createSequentialGroup()
                 .addContainerGap(37, Short.MAX_VALUE)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(welcomeLabel)
@@ -172,7 +176,7 @@ public class TeacherAndStudentHome extends javax.swing.JFrame {
                         .addComponent(evaluateBtn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
                 .addGap(37, 37, 37))
             .addGroup(jPanel1Layout.createSequentialGroup()
-                .addGap(122, 122, 122)
+                .addGap(134, 134, 134)
                 .addComponent(logOutBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 312, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
@@ -216,6 +220,11 @@ public class TeacherAndStudentHome extends javax.swing.JFrame {
         showStudentsOfTour.setFont(new java.awt.Font("Tahoma", 1, 24)); // NOI18N
         showStudentsOfTour.setForeground(new java.awt.Color(255, 255, 255));
         showStudentsOfTour.setText("Danh sách sinh viên tham gia tham quan");
+        showStudentsOfTour.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                showStudentsOfTourActionPerformed(evt);
+            }
+        });
 
         ratedTour.setBackground(new java.awt.Color(0, 102, 102));
         ratedTour.setFont(new java.awt.Font("Tahoma", 1, 24)); // NOI18N
@@ -313,6 +322,10 @@ public class TeacherAndStudentHome extends javax.swing.JFrame {
             dispose();
             ShowData scData = null;
             if(loggedInTeacher != null){
+                showStudentsOfTour.setVisible(true);
+                addTour.setVisible(false);
+                ratedTour.setVisible(false);
+                
                 TransmittedDataShowData data = new TransmittedDataShowData("toursOfTeachers", "teacherAndStudentHome", loggedInTeacher.getId(), false);
                 scData = new ShowData(data);
             }else if(loggedInStudent != null){
@@ -399,6 +412,9 @@ public class TeacherAndStudentHome extends javax.swing.JFrame {
                     }
                 }
             }else if(loggedInTeacher != null){
+                ratedTour.setVisible(false);
+                addTour.setVisible(false);
+                
                 List<Tour> tour_data = tourService.getToursByTeacherId(loggedInTeacher.getId());
                 List<Company> company_data = companyService.getAllCompanies();
                 List<Teacher> teacher_data = teacherService.getAllTeachers();
@@ -449,15 +465,22 @@ public class TeacherAndStudentHome extends javax.swing.JFrame {
 
     private void showUpcomingToursActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_showUpcomingToursActionPerformed
         menu1.setText("CÁC CHUYẾN THAM QUAN DOANH NGHIỆP SĂP DIỄN RA");
-        addTour.setVisible(false);
-        searchInput.setVisible(true);
-        searchBtn.setVisible(true);
-        initializeTableOfTours();
-        reated = "comingTours";
+        if(loggedInTeacher != null){
+            addTour.setVisible(false);
+            searchInput.setVisible(true);
+            searchBtn.setVisible(true);
+            ratedTour.setVisible(false);
+            showStudentsOfTour.setVisible(true);
+            initializeTableOfTours();
+            reated = "comingTours";
+        }else if(loggedInStudent != null){
+            addTour.setVisible(true);
+            initializeTableOfTours();
+            reated = "comingTours";
+        }
     }//GEN-LAST:event_showUpcomingToursActionPerformed
 
     private void addTourActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_addTourActionPerformed
-        
         try {
             if(reated.equalsIgnoreCase("tookPlaceTours")){
                 
@@ -472,8 +495,11 @@ public class TeacherAndStudentHome extends javax.swing.JFrame {
                 Tour tour = tourService.getTourById(tourId);
                 
                 if(loggedInStudent != null){
-                    List<StudentTour> studentTours_data = studentTourService.getAllStudentToursByStudentId(loggedInStudent.getId());
+                    List<StudentTour> studentTours_data = studentTourService.getAllStudentToursByTourId(tourId);
+                    System.out.println("studentTours_data: " + studentTours_data);
                     List<Tour> tours = tourService.getToursByStudentId(loggedInStudent.getId());
+                    System.out.println("Tours: " + tours);
+                    System.out.println("StudentId: " + loggedInStudent.getId());
                     if(studentTours_data != null && tours != null){
                         for(StudentTour studentTour : studentTours_data){
                             if(studentTour.getStudentId() == loggedInStudent.getId()){
@@ -509,12 +535,95 @@ public class TeacherAndStudentHome extends javax.swing.JFrame {
     }//GEN-LAST:event_searchBtnActionPerformed
 
     private void evaluateBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_evaluateBtnActionPerformed
-        menu1.setText("DANH SÁCH CÁC CHUYẾN THAM QUAN CẦN ĐƯỢC ĐÁNH GIÁ");
-        addTour.setText("Các chuyến tham quan chưa đánh giá");
-        addTour.setVisible(true);
-        ratedTour.setVisible(true);
-        reated = "tookPlaceTours";
+        if(loggedInTeacher != null){
+            menu1.setText("DANH SÁCH CÁC CHUYẾN THAM QUAN CẦN ĐƯỢC ĐÁNH GIÁ");
+            addTour.setText("Các chuyến tham quan chưa đánh giá");
+            showStudentsOfTour.setVisible(true);
+            addTour.setVisible(true);
+            ratedTour.setVisible(true);
+            reated = "tookPlaceTours";
+            loadTableOfTookPlaceTours();
+        }
     }//GEN-LAST:event_evaluateBtnActionPerformed
+
+    private void loadTableOfTookPlaceTours(){
+        tableModel = new DefaultTableModel();
+        tableModel.setColumnIdentifiers(new String[]{"Mã chuyến", "Tên chuyến", "Mô tả",
+            "Số lượng", "Ngày diễn ra", "Người đại diện công ty", "Công ty", "Giáo viên"});
+        futureTourTable.setModel(tableModel);
+        tableModel.setRowCount(0);
+        if(loggedInTeacher != null){
+            ratedTour.setVisible(false);
+            addTour.setVisible(false);
+
+            List<Tour> tour_data = tourService.getToursByTeacherId(loggedInTeacher.getId());
+            List<Company> company_data = companyService.getAllCompanies();
+            List<Teacher> teacher_data = teacherService.getAllTeachers();
+
+            if(tour_data != null){
+                for(Tour tour : tour_data){
+                    String dateString = tour.getStartDate();
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+                    try {
+                        LocalDate inputDate = LocalDate.parse(dateString,formatter);
+                        LocalDate currentDate = LocalDate.now();
+                        if(currentDate.compareTo(inputDate) > 0){
+                            String companyName = "";
+                            String teacherName = "";
+                            for(Company comp : company_data){
+                                if(comp.getId() == tour.getCompanyId()){
+                                    companyName = comp.getName();
+                                }
+                            }
+                            for(Teacher tea : teacher_data){
+                                if(tea.getId() == tour.getTeacherId()){
+                                    teacherName = tea.getLastName() + " " + tea.getFirstName();
+                                }
+                            }
+                            tableModel.addRow(new Object[]{
+                                tour.getCode(),
+                                tour.getName(),
+                                tour.getDescription(),
+                                tour.getAvailables(),
+                                tour.getStartDate(),
+                                tour.getPresentator(), 
+                                companyName, 
+                                teacherName
+                            });
+                        }
+                    } catch (Exception e) {
+                        MessageDialog.showInfoDialog(this, "Có lỗi", "Thông báo");
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
+    }
+    private void showStudentsOfTourActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_showStudentsOfTourActionPerformed
+        try {
+            int index = futureTourTable.getSelectedRow();
+            if (index == -1) {
+                MessageDialog.showInfoDialog(this, "Vui chọn chuyến tham quan mà bạn muốn xem danh sách sinh viên", "Thông báo");
+                return;
+            }
+            
+            String code = (String)futureTourTable.getValueAt(index, 0);
+            int tourId = tourService.getIdByTourCode(code);
+            dispose();
+            TransmittedDataShowData data_show = null;
+            if (loggedInTeacher != null) {
+                data_show = new TransmittedDataShowData("studentTours", "teacherAndStudentHome", tourId, loggedInTeacher.getId(), false);
+                if (reated.equalsIgnoreCase("tookPlaceTours")) {
+                    data_show = new TransmittedDataShowData("studentTookPlaceTours", "teacherAndStudentHome", tourId, loggedInTeacher.getId(), false);
+                }
+            }
+            ShowData screen = new ShowData(data_show);
+            screen.setLocationRelativeTo(null);
+            screen.setVisible(true);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }//GEN-LAST:event_showStudentsOfTourActionPerformed
 
     private void searchByKey(){
         try {
@@ -525,6 +634,9 @@ public class TeacherAndStudentHome extends javax.swing.JFrame {
                     initializeTableOfTours();
                 }else if(reated.equalsIgnoreCase("tookPlaceTours")){
                     loadTableDataOfTours();
+                }else{
+                    initializeTableOfTours();
+                    return;
                 }
             }
             
@@ -573,44 +685,88 @@ public class TeacherAndStudentHome extends javax.swing.JFrame {
     
     private void loadTableDataOfTours(){
         try {
-            List<Tour> tour_data = tourService.getAllTours();
-            List<Company> company_data = companyService.getAllCompanies();
-            List<Teacher> teacher_data = teacherService.getAllTeachers();
-            tableModel.setRowCount(0);
-            if(tour_data != null){
-                for(Tour tour : tour_data){
-                    String dateString = tour.getStartDate();
-                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-                    try {
-                        LocalDate inputDate = LocalDate.parse(dateString,formatter);
-                        LocalDate currentDate = LocalDate.now();
-                        if(currentDate.compareTo(inputDate) < 0){
-                            String companyName = "";
-                            String teacherName = "";
-                            for(Company comp : company_data){
-                                if(comp.getId() == tour.getCompanyId()){
-                                    companyName = comp.getName();
+            if(loggedInTeacher != null){
+                List<Tour> tour_data = tourService.getToursByTeacherId(loggedInTeacher.getId());
+                List<Company> company_data = companyService.getAllCompanies();
+                List<Teacher> teacher_data = teacherService.getAllTeachers();
+                tableModel.setRowCount(0);
+                if(tour_data != null){
+                    for(Tour tour : tour_data){
+                        String dateString = tour.getStartDate();
+                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+                        try {
+                            LocalDate inputDate = LocalDate.parse(dateString,formatter);
+                            LocalDate currentDate = LocalDate.now();
+                            if(currentDate.compareTo(inputDate) < 0){
+                                String companyName = "";
+                                String teacherName = "";
+                                for(Company comp : company_data){
+                                    if(comp.getId() == tour.getCompanyId()){
+                                        companyName = comp.getName();
+                                    }
                                 }
-                            }
-                            for(Teacher tea : teacher_data){
-                                if(tea.getId() == tour.getTeacherId()){
-                                    teacherName = tea.getLastName() + " " + tea.getFirstName();
+                                for(Teacher tea : teacher_data){
+                                    if(tea.getId() == tour.getTeacherId()){
+                                        teacherName = tea.getLastName() + " " + tea.getFirstName();
+                                    }
                                 }
+                                tableModel.addRow(new Object[]{
+                                    tour.getCode(),
+                                    tour.getName(),
+                                    tour.getDescription(),
+                                    tour.getAvailables(),
+                                    tour.getStartDate(),
+                                    tour.getPresentator(), 
+                                    companyName, 
+                                    teacherName
+                                });
                             }
-                            tableModel.addRow(new Object[]{
-                                tour.getCode(),
-                                tour.getName(),
-                                tour.getDescription(),
-                                tour.getAvailables(),
-                                tour.getStartDate(),
-                                tour.getPresentator(), 
-                                companyName, 
-                                teacherName
-                            });
+                        } catch (Exception e) {
+                            MessageDialog.showInfoDialog(this, "Có lỗi", "Thông báo");
+                            e.printStackTrace();
                         }
-                    } catch (Exception e) {
-                        MessageDialog.showInfoDialog(this, "Có lỗi", "Thông báo");
-                        e.printStackTrace();
+                    }
+                }
+            }else if(loggedInStudent != null){
+                List<Tour> tour_data = tourService.getAllTours();
+                List<Company> company_data = companyService.getAllCompanies();
+                List<Teacher> teacher_data = teacherService.getAllTeachers();
+                tableModel.setRowCount(0);
+                if(tour_data != null){
+                    for(Tour tour : tour_data){
+                        String dateString = tour.getStartDate();
+                        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+                        try {
+                            LocalDate inputDate = LocalDate.parse(dateString,formatter);
+                            LocalDate currentDate = LocalDate.now();
+                            if(currentDate.compareTo(inputDate) < 0){
+                                String companyName = "";
+                                String teacherName = "";
+                                for(Company comp : company_data){
+                                    if(comp.getId() == tour.getCompanyId()){
+                                        companyName = comp.getName();
+                                    }
+                                }
+                                for(Teacher tea : teacher_data){
+                                    if(tea.getId() == tour.getTeacherId()){
+                                        teacherName = tea.getLastName() + " " + tea.getFirstName();
+                                    }
+                                }
+                                tableModel.addRow(new Object[]{
+                                    tour.getCode(),
+                                    tour.getName(),
+                                    tour.getDescription(),
+                                    tour.getAvailables(),
+                                    tour.getStartDate(),
+                                    tour.getPresentator(), 
+                                    companyName, 
+                                    teacherName
+                                });
+                            }
+                        } catch (Exception e) {
+                            MessageDialog.showInfoDialog(this, "Có lỗi", "Thông báo");
+                            e.printStackTrace();
+                        }
                     }
                 }
             }

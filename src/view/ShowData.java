@@ -1,9 +1,24 @@
 package view;
 
 import exception.*;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.List;
+import javax.swing.JFileChooser;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 import models.*;
+import org.apache.poi.ss.usermodel.BorderStyle;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.FillPatternType;
+import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
+import org.apache.poi.ss.usermodel.IndexedColors;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import services.*;
 
 public class ShowData extends javax.swing.JFrame {
@@ -29,13 +44,13 @@ public class ShowData extends javax.swing.JFrame {
             initComponents();
             setLocationRelativeTo(null);
             checkAndInitializeTable();
-            if (dataOfShowData.getTypeData().equalsIgnoreCase("toursOfTeacher") || dataOfShowData.getTypeData().equalsIgnoreCase("toursOfStudents")) {
+            if (dataOfShowData.getTypeData().equalsIgnoreCase("toursOfTeachers") || dataOfShowData.getTypeData().equalsIgnoreCase("toursOfStudents")) {
                 clearDataButton.setText("Hủy chuyến tham quan");
             }
             if (dataOfShowData.getTypeData().equalsIgnoreCase("studentTookPlaceTours")) {
                 clearDataButton.setText("Đánh giá");
-                exportPDFFileButton.setText("Sinh viên chưa đánh giá");
-                exportExcelFileButton.setText("Sinh viên đã đánh giá");
+//                exportPDFFileButton.setText("Sinh viên chưa đánh giá");
+//                exportExcelFileButton.setText("Sinh viên đã đánh giá");
             }
         } catch (Exception ex) {
             MessageDialog.showErrorDialog(this, "Có lỗi xảy ra! Chi tiết: " + ex.getMessage(), "lỗi");
@@ -53,7 +68,7 @@ public class ShowData extends javax.swing.JFrame {
                         "Địa chỉ", "Điện thoại", "Email", "Ngày sinh"});
                 } else if (dataOfShowData.getTypeData().equalsIgnoreCase("students")) {
                     titleMainLabel.setText("Danh sách sinh viên được quản lý");
-                    tableModel.setColumnIdentifiers(new String[]{"Mã sinh viên", "Họ", "Tên", "Địa chỉ", "SĐT", "Email", "Ngày sinh", "Class id"});
+                    tableModel.setColumnIdentifiers(new String[]{"Mã sinh viên", "Họ", "Tên", "Địa chỉ", "SĐT", "Email", "Ngày sinh", "Lớp"});
                 } else if (dataOfShowData.getTypeData().equalsIgnoreCase("companys")) {
                     titleMainLabel.setText("Danh sách doanh nghiệp liên kết với nhà trường");
                     tableModel.setColumnIdentifiers(new String[]{"Mã doanh nghiệp", "Doanh nghiệp", "Địa chỉ",
@@ -82,6 +97,33 @@ public class ShowData extends javax.swing.JFrame {
             }
         } catch (Exception ex) {
             MessageDialog.showErrorDialog(search, "Có lỗi, chi tiết: " + ex.getMessage(), "Lỗi");
+        }
+    }
+    
+    private void loadTableData() {
+        try {
+            if(dataOfShowData.getTypeData() != null && dataOfShowData.getBackToPage() != null){
+                tableModel.setRowCount(0);
+            }
+            if(dataOfShowData.getTypeData().equalsIgnoreCase("students")){
+                loadStudentsData();
+            }else if(dataOfShowData.getTypeData().equalsIgnoreCase("studentTours")){
+                loadStudentToursData();
+            }else if(dataOfShowData.getTypeData().equalsIgnoreCase("tours")){
+                loadToursData();
+            }else if(dataOfShowData.getTypeData().equalsIgnoreCase("companys")){
+                loadCompanysData();
+            }else if(dataOfShowData.getTypeData().equalsIgnoreCase("teachers")){
+                loadTeachersData();
+            }else if(dataOfShowData.getTypeData().equalsIgnoreCase("toursOfTeachers")){
+                loadTableToursOfTeacherData();
+            }else if(dataOfShowData.getTypeData().equalsIgnoreCase("toursOfStudents")){
+                loadTableToursOfStudentData();
+            }else if(dataOfShowData.getTypeData().equalsIgnoreCase("studentTookPlaceTours")){
+                loadStudentsAwaitingFeedback("=");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
     
@@ -232,40 +274,976 @@ public class ShowData extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void clearDataButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_clearDataButtonActionPerformed
-        // TODO add your handling code here:
+        try {
+            if (dataOfShowData.getTypeData().equalsIgnoreCase("toursOfStudents")){
+                int index = dataTable.getSelectedRow();
+                if (index == -1) {
+                    MessageDialog.showInfoDialog(this, "Vui lòng chọn chuyến tham quan mà bạn muốn xóa", "Thông báo");
+                    return;
+                }
+                String tourCode = (String) dataTable.getValueAt(index, 0);
+                System.out.println("TourCode: " + tourCode);
+                int tourId = tourService.getIdByTourCode(tourCode);
+                System.out.println("TourId: " + tourId);
+                System.out.println("StudentId: " + dataOfShowData.getStudentId());
+                int studentId = dataOfShowData.getStudentId();
+                studentTourService.deleteStudentTour(studentId, tourId);
+                MessageDialog.showInfoDialog(this, "Xóa chuyến tham quan thành công", "Thông báo");
+                loadTableToursOfStudentData();
+            }else if(dataOfShowData.getTypeData().equalsIgnoreCase("toursOfTeachers")){
+                int index = dataTable.getSelectedRow();
+                if(index == -1){
+                    MessageDialog.showInfoDialog(this, "Vui lòng chọn chuyến tham quan mà bạn muốn xóa", "Thông báo");
+                    return;
+                }
+                String tourCode = (String) dataTable.getValueAt(index, 0);
+                int tourId = tourService.getIdByTourCode(tourCode);
+                int confirm = MessageDialog.showConfirmDialog(this, "Bạn có chắc chắn muốn xóa chuyến tham quan này không", "Thông báo");
+                if(confirm == 0){
+                    tourService.updateTeacherIdByTourId(tourId);
+                    loadTableToursOfTeacherData();
+                }
+            }
+            else if (dataOfShowData.getTypeData().equalsIgnoreCase("studentTookPlaceTours")) {
+                try {
+                    int index = dataTable.getSelectedRow();
+                    if (index == -1) {
+                        MessageDialog.showInfoDialog(this, "Vui lòng chọn sinh viên bạn muốn đánh giá", "Thông báo");
+                        return;
+                    }
+                    String studentCode = (String) dataTable.getValueAt(index, 0);
+                    int studentId = studentService.getIdByStudent(studentCode);
+                    Student selectStudent = studentService.getStudentById(studentId);
+                    System.out.println("Student: " + selectStudent);
+                    dispose();
+
+                    Tour selectTour = tourService.getTourById(dataOfShowData.getTourId());
+                    System.out.println("Tour: " + selectTour);
+                    RateStudentResult screen = new RateStudentResult(selectTour, selectStudent,true);
+                    screen.setLocationRelativeTo(null);
+                    screen.setVisible(true);
+                } catch (Exception ex) {
+                    MessageDialog.showErrorDialog(this, "Có lỗi, chi tiết: " + ex.getMessage(), "Lỗi");
+                    ex.printStackTrace();
+                }
+            }else{
+                searchInput.setText("");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }//GEN-LAST:event_clearDataButtonActionPerformed
 
     private void exportPDFFileButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_exportPDFFileButtonActionPerformed
         try {
-            if(dataOfShowData.getTypeData().equalsIgnoreCase("studentTookPlaceTours")){
-                tableModel.setRowCount(0);
-                tableModel.fireTableDataChanged();
-            }else{
-                String title = "";
-                if (dataOfShowData.getTypeData().equalsIgnoreCase("studentTours")) {
-                    title = "DANH SÁCH SINH VIÊN CỦA CHUYẾN THAM QUAN";
-                }
-                dataTable.setModel(tableModel);
-                loadTableData();
-                PDFExporter.exportTableToPDF(dataTable, title);
+            String title = "";
+            if (dataOfShowData.getTypeData().equalsIgnoreCase("studentTours")) {
+                title = "DANH SÁCH SINH VIÊN CỦA CHUYẾN THAM QUAN";
             }
+            dataTable.setModel(tableModel);
+            loadTableData();
+            PDFExporter.exportTableToPDF(dataTable, title);
         } catch (Exception e) {
             MessageDialog.showErrorDialog(search, "Có lỗi, chi tiết: " + e.getMessage(), "Lỗi");
         }
     }//GEN-LAST:event_exportPDFFileButtonActionPerformed
 
     private void exportExcelFileButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_exportExcelFileButtonActionPerformed
-        if (dataOfShowData.getTypeData().equalsIgnoreCase("studentTookPlaceTours")) {
-            try {
-                tableModel.setRowCount(0);
-                loadStudentsAwaitingFeedback(">");
-                tableModel.fireTableDataChanged();
-            } catch (Exception ex) {
-                MessageDialog.showErrorDialog(search, "Có lỗi, chi tiết: " + ex.getMessage(), "Lỗi");
+        try {
+            if (dataOfShowData.getTypeData().equalsIgnoreCase("toursOfTeachers")) {
+                Tour tour = tourService.getTourByTeacherId(dataOfShowData.getTeacherId());
+                Teacher teacher = teacherService.getTeacherById(dataOfShowData.getTeacherId());
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setDialogTitle("Chọn vị trí để xuất file Excel");
+                fileChooser.setFileFilter(new FileNameExtensionFilter("Excel Files (*.xlsx)", "xlsx"));
+
+                int userSelection = fileChooser.showSaveDialog(this);
+
+                if (userSelection == JFileChooser.APPROVE_OPTION) {
+                    String filePath = fileChooser.getSelectedFile().getAbsolutePath();
+
+                    // Ensure the file has a .xlsx extension
+                    if (!filePath.toLowerCase().endsWith(".xlsx")) {
+                        filePath += ".xlsx";
+                    }
+
+                    File file = new File(filePath);
+
+                    // Check if the file already exists
+                    if (file.exists()) {
+                        MessageDialog.showErrorDialog(this, "Tên file đã tồn tại! Vui lòng chọn tên khác.", "Lỗi");
+                    } else {
+                        Workbook workbook = new XSSFWorkbook();
+                        String tourTitle = tour.getName() + " (Mã: " + teacher.getCode() + ", Tên giáo viên: " + teacher.getLastName() +" "+teacher.getFirstName() + ") ";
+                        Sheet sheet = workbook.createSheet("Danh sách các chuyến tham quan mà giáo viên tham gia " + tourTitle);
+
+                        // Create header row
+                        Row headerRow = sheet.createRow(0);
+
+                        CellStyle headerStyle = workbook.createCellStyle();
+                        headerStyle.setFillForegroundColor(IndexedColors.LIGHT_BLUE.getIndex());
+                        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+                        headerStyle.setAlignment(HorizontalAlignment.CENTER);
+
+                        Font headerFont = workbook.createFont();
+                        headerFont.setColor(IndexedColors.WHITE.getIndex());
+                        headerFont.setBold(true);
+                        headerStyle.setFont(headerFont);
+
+                        String[] headers = {"Mã chuyến tham quan", "Tên chuyến tham quan", "Ngày tham quan", "Doanh nghiệp chủ quản", "Số lượng sinh viên tham gia"};
+
+                        for (int i = 0; i < headers.length; i++) {
+                            Cell cell = headerRow.createCell(i);
+                            cell.setCellValue(headers[i]);
+                            cell.setCellStyle(headerStyle);
+                        }
+
+                        // Set cell style with borders
+                        CellStyle cellStyle = workbook.createCellStyle();
+                        cellStyle.setBorderBottom(BorderStyle.THIN);
+                        cellStyle.setBottomBorderColor(IndexedColors.BLACK.getIndex());
+                        cellStyle.setBorderTop(BorderStyle.THIN);
+                        cellStyle.setTopBorderColor(IndexedColors.BLACK.getIndex());
+                        cellStyle.setBorderLeft(BorderStyle.THIN);
+                        cellStyle.setLeftBorderColor(IndexedColors.BLACK.getIndex());
+                        cellStyle.setBorderRight(BorderStyle.THIN);
+                        cellStyle.setRightBorderColor(IndexedColors.BLACK.getIndex());
+
+                        // Write data to the Excel sheet
+                        List<Tour> tours = tourService.getToursByTeacherId(dataOfShowData.getTeacherId());
+                        if (tours != null) {
+                            int rowNum = 1;
+                            for (Tour teacherTour : tours) {
+                                Row row = sheet.createRow(rowNum++);
+                                for (int i = 0; i < headers.length; i++) {
+                                    Cell cell = row.createCell(i);
+                                    cell.setCellValue(getCellValueOfTourTeacher(teacherTour, i));
+                                    cell.setCellStyle(cellStyle);
+                                }
+                            }
+                        }
+
+                        try ( FileOutputStream fileOut = new FileOutputStream(filePath)) {
+                            workbook.write(fileOut);
+                        } catch (Exception exs) {
+                            throw exs;
+                        }
+
+                        workbook.close();
+
+                        MessageDialog.showInfoDialog(this, "Xuất danh sách thành công! " + "\nNơi lưu: " + filePath, "Thông báo");
+                    }
+                }
+            } else if(dataOfShowData.getTypeData().equalsIgnoreCase("toursOfStudents")){
+                Tour tour = tourService.getTourByStudentId(dataOfShowData.getStudentId());
+                Student student = studentService.getStudentById(dataOfShowData.getStudentId());
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setDialogTitle("Chọn vị trí để xuất file Excel");
+                fileChooser.setFileFilter(new FileNameExtensionFilter("Excel Files (*.xlsx)", "xlsx"));
+
+                int userSelection = fileChooser.showSaveDialog(this);
+
+                if (userSelection == JFileChooser.APPROVE_OPTION) {
+                    String filePath = fileChooser.getSelectedFile().getAbsolutePath();
+
+                    // Ensure the file has a .xlsx extension
+                    if (!filePath.toLowerCase().endsWith(".xlsx")) {
+                        filePath += ".xlsx";
+                    }
+
+                    File file = new File(filePath);
+
+                    // Check if the file already exists
+                    if (file.exists()) {
+                        MessageDialog.showErrorDialog(this, "Tên file đã tồn tại! Vui lòng chọn tên khác.", "Lỗi");
+                    } else {
+                        Workbook workbook = new XSSFWorkbook();
+                        String tourTitle = tour.getName() + " (Mã: " + student.getCode() + ", Tên sinh viên: " + student.getLastName() +" "+student.getFirstName() + ") ";
+                        Sheet sheet = workbook.createSheet("Danh sách các chuyến tham quan mà sinh viên tham gia " + tourTitle);
+
+                        // Create header row
+                        Row headerRow = sheet.createRow(0);
+
+                        CellStyle headerStyle = workbook.createCellStyle();
+                        headerStyle.setFillForegroundColor(IndexedColors.LIGHT_BLUE.getIndex());
+                        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+                        headerStyle.setAlignment(HorizontalAlignment.CENTER);
+
+                        Font headerFont = workbook.createFont();
+                        headerFont.setColor(IndexedColors.WHITE.getIndex());
+                        headerFont.setBold(true);
+                        headerStyle.setFont(headerFont);
+
+                        String[] headers = {"Mã chuyến tham quan", 
+                            "Tên chuyến tham quan", 
+                            "Mô tả", 
+                            "Ngày bắt đầu", 
+                            "Số ghế ", 
+                            "Tên doanh nghiệp", 
+                            "Tên giáo viên", 
+                            "Người đại diện"};
+
+                        for (int i = 0; i < headers.length; i++) {
+                            Cell cell = headerRow.createCell(i);
+                            cell.setCellValue(headers[i]);
+                            cell.setCellStyle(headerStyle);
+                        }
+
+                        // Set cell style with borders
+                        CellStyle cellStyle = workbook.createCellStyle();
+                        cellStyle.setBorderBottom(BorderStyle.THIN);
+                        cellStyle.setBottomBorderColor(IndexedColors.BLACK.getIndex());
+                        cellStyle.setBorderTop(BorderStyle.THIN);
+                        cellStyle.setTopBorderColor(IndexedColors.BLACK.getIndex());
+                        cellStyle.setBorderLeft(BorderStyle.THIN);
+                        cellStyle.setLeftBorderColor(IndexedColors.BLACK.getIndex());
+                        cellStyle.setBorderRight(BorderStyle.THIN);
+                        cellStyle.setRightBorderColor(IndexedColors.BLACK.getIndex());
+
+                        // Write data to the Excel sheet
+                        List<Tour> tours = tourService.getToursByStudentId(dataOfShowData.getStudentId());
+                        if (tours != null) {
+                            int rowNum = 1;
+                            for (Tour studentTour : tours) {
+                                Row row = sheet.createRow(rowNum++);
+                                for (int i = 0; i < headers.length; i++) {
+                                    Cell cell = row.createCell(i);
+                                    cell.setCellValue(getCellValueOfTourStudent(studentTour, i));
+                                    cell.setCellStyle(cellStyle);
+                                }
+                            }
+                        }
+
+                        try ( FileOutputStream fileOut = new FileOutputStream(filePath)) {
+                            workbook.write(fileOut);
+                        } catch (Exception exs) {
+                            throw exs;
+                        }
+
+                        workbook.close();
+
+                        MessageDialog.showInfoDialog(this, "Xuất danh sách thành công! " + "\nNơi lưu: " + filePath, "Thông báo");
+                    }
+                }
+            }else if(dataOfShowData.getTypeData().equalsIgnoreCase("students")){
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setDialogTitle("Chọn vị trí để xuất file Excel");
+                fileChooser.setFileFilter(new FileNameExtensionFilter("Excel Files (*.xlsx)", "xlsx"));
+
+                int userSelection = fileChooser.showSaveDialog(this);
+
+                if (userSelection == JFileChooser.APPROVE_OPTION) {
+                    String filePath = fileChooser.getSelectedFile().getAbsolutePath();
+
+                    // Ensure the file has a .xlsx extension
+                    if (!filePath.toLowerCase().endsWith(".xlsx")) {
+                        filePath += ".xlsx";
+                    }
+
+                    File file = new File(filePath);
+
+                    // Check if the file already exists
+                    if (file.exists()) {
+                        MessageDialog.showErrorDialog(this, "Tên file đã tồn tại! Vui lòng chọn tên khác.", "Lỗi");
+                    } else {
+                        Workbook workbook = new XSSFWorkbook();
+                        Sheet sheet = workbook.createSheet("Danh sách sinh viên được quản lý ");
+
+                        // Create header row
+                        Row headerRow = sheet.createRow(0);
+
+                        CellStyle headerStyle = workbook.createCellStyle();
+                        headerStyle.setFillForegroundColor(IndexedColors.LIGHT_BLUE.getIndex());
+                        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+                        headerStyle.setAlignment(HorizontalAlignment.CENTER);
+
+                        Font headerFont = workbook.createFont();
+                        headerFont.setColor(IndexedColors.WHITE.getIndex());
+                        headerFont.setBold(true);
+                        headerStyle.setFont(headerFont);
+
+                        String[] headers = {"Mã sinh viên", 
+                            "Họ", 
+                            "Tên", 
+                            "Địa chỉ", 
+                            "SĐT", 
+                            "Email", 
+                            "Ngày sinh", 
+                            "Lớp"};
+
+                        for (int i = 0; i < headers.length; i++) {
+                            Cell cell = headerRow.createCell(i);
+                            cell.setCellValue(headers[i]);
+                            cell.setCellStyle(headerStyle);
+                        }
+
+                        // Set cell style with borders
+                        CellStyle cellStyle = workbook.createCellStyle();
+                        cellStyle.setBorderBottom(BorderStyle.THIN);
+                        cellStyle.setBottomBorderColor(IndexedColors.BLACK.getIndex());
+                        cellStyle.setBorderTop(BorderStyle.THIN);
+                        cellStyle.setTopBorderColor(IndexedColors.BLACK.getIndex());
+                        cellStyle.setBorderLeft(BorderStyle.THIN);
+                        cellStyle.setLeftBorderColor(IndexedColors.BLACK.getIndex());
+                        cellStyle.setBorderRight(BorderStyle.THIN);
+                        cellStyle.setRightBorderColor(IndexedColors.BLACK.getIndex());
+
+                        // Write data to the Excel sheet
+                        List<Student> students = studentService.getAllStudents();
+                        if (students != null) {
+                            int rowNum = 1;
+                            for (Student studentSelect : students) {
+                                Row row = sheet.createRow(rowNum++);
+                                for (int i = 0; i < headers.length; i++) {
+                                    Cell cell = row.createCell(i);
+                                    cell.setCellValue(getCellValueOfStudents(studentSelect, i));
+                                    cell.setCellStyle(cellStyle);
+                                }
+                            }
+                        }
+
+                        try ( FileOutputStream fileOut = new FileOutputStream(filePath)) {
+                            workbook.write(fileOut);
+                        } catch (Exception exs) {
+                            throw exs;
+                        }
+
+                        workbook.close();
+
+                        MessageDialog.showInfoDialog(this, "Xuất danh sách thành công! " + "\nNơi lưu: " + filePath, "Thông báo");
+                    }
+                }
             }
+            else if(dataOfShowData.getTypeData().equalsIgnoreCase("companys")){
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setDialogTitle("Chọn vị trí để xuất file Excel");
+                fileChooser.setFileFilter(new FileNameExtensionFilter("Excel Files (*.xlsx)", "xlsx"));
+
+                int userSelection = fileChooser.showSaveDialog(this);
+
+                if (userSelection == JFileChooser.APPROVE_OPTION) {
+                    String filePath = fileChooser.getSelectedFile().getAbsolutePath();
+
+                    // Ensure the file has a .xlsx extension
+                    if (!filePath.toLowerCase().endsWith(".xlsx")) {
+                        filePath += ".xlsx";
+                    }
+
+                    File file = new File(filePath);
+
+                    // Check if the file already exists
+                    if (file.exists()) {
+                        MessageDialog.showErrorDialog(this, "Tên file đã tồn tại! Vui lòng chọn tên khác.", "Lỗi");
+                    } else {
+                        Workbook workbook = new XSSFWorkbook();
+                        Sheet sheet = workbook.createSheet("Danh sách doanh nghiệp liên kết với nhà trường ");
+
+                        // Create header row
+                        Row headerRow = sheet.createRow(0);
+
+                        CellStyle headerStyle = workbook.createCellStyle();
+                        headerStyle.setFillForegroundColor(IndexedColors.LIGHT_BLUE.getIndex());
+                        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+                        headerStyle.setAlignment(HorizontalAlignment.CENTER);
+
+                        Font headerFont = workbook.createFont();
+                        headerFont.setColor(IndexedColors.WHITE.getIndex());
+                        headerFont.setBold(true);
+                        headerStyle.setFont(headerFont);
+
+                        String[] headers = {
+                            "Mã doanh nghiệp", 
+                            "Tên doanh nghiệp", 
+                            "Địa chỉ", 
+                            "Email", 
+                            "SĐT", 
+                            "Mô tả"
+                        };
+
+                        for (int i = 0; i < headers.length; i++) {
+                            Cell cell = headerRow.createCell(i);
+                            cell.setCellValue(headers[i]);
+                            cell.setCellStyle(headerStyle);
+                        }
+
+                        // Set cell style with borders
+                        CellStyle cellStyle = workbook.createCellStyle();
+                        cellStyle.setBorderBottom(BorderStyle.THIN);
+                        cellStyle.setBottomBorderColor(IndexedColors.BLACK.getIndex());
+                        cellStyle.setBorderTop(BorderStyle.THIN);
+                        cellStyle.setTopBorderColor(IndexedColors.BLACK.getIndex());
+                        cellStyle.setBorderLeft(BorderStyle.THIN);
+                        cellStyle.setLeftBorderColor(IndexedColors.BLACK.getIndex());
+                        cellStyle.setBorderRight(BorderStyle.THIN);
+                        cellStyle.setRightBorderColor(IndexedColors.BLACK.getIndex());
+
+                        // Write data to the Excel sheet
+                        List<Company> companys = companyService.getAllCompanies();
+                        if (companys != null) {
+                            int rowNum = 1;
+                            for (Company companySelect : companys) {
+                                Row row = sheet.createRow(rowNum++);
+                                for (int i = 0; i < headers.length; i++) {
+                                    Cell cell = row.createCell(i);
+                                    cell.setCellValue(getCellValueOfCompanys(companySelect, i));
+                                    cell.setCellStyle(cellStyle);
+                                }
+                            }
+                        }
+
+                        try ( FileOutputStream fileOut = new FileOutputStream(filePath)) {
+                            workbook.write(fileOut);
+                        } catch (Exception exs) {
+                            throw exs;
+                        }
+
+                        workbook.close();
+
+                        MessageDialog.showInfoDialog(this, "Xuất danh sách thành công! " + "\nNơi lưu: " + filePath, "Thông báo");
+                    }
+                }
+            }
+            else if(dataOfShowData.getTypeData().equalsIgnoreCase("teachers")){
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setDialogTitle("Chọn vị trí để xuất file Excel");
+                fileChooser.setFileFilter(new FileNameExtensionFilter("Excel Files (*.xlsx)", "xlsx"));
+
+                int userSelection = fileChooser.showSaveDialog(this);
+
+                if (userSelection == JFileChooser.APPROVE_OPTION) {
+                    String filePath = fileChooser.getSelectedFile().getAbsolutePath();
+
+                    // Ensure the file has a .xlsx extension
+                    if (!filePath.toLowerCase().endsWith(".xlsx")) {
+                        filePath += ".xlsx";
+                    }
+
+                    File file = new File(filePath);
+
+                    // Check if the file already exists
+                    if (file.exists()) {
+                        MessageDialog.showErrorDialog(this, "Tên file đã tồn tại! Vui lòng chọn tên khác.", "Lỗi");
+                    } else {
+                        Workbook workbook = new XSSFWorkbook();
+                        Sheet sheet = workbook.createSheet("Danh sách giáo viên đại diện nhà trường ");
+
+                        // Create header row
+                        Row headerRow = sheet.createRow(0);
+
+                        CellStyle headerStyle = workbook.createCellStyle();
+                        headerStyle.setFillForegroundColor(IndexedColors.LIGHT_BLUE.getIndex());
+                        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+                        headerStyle.setAlignment(HorizontalAlignment.CENTER);
+
+                        Font headerFont = workbook.createFont();
+                        headerFont.setColor(IndexedColors.WHITE.getIndex());
+                        headerFont.setBold(true);
+                        headerStyle.setFont(headerFont);
+
+                        String[] headers = {
+                            "Mã giáo viên", 
+                            "Họ tên", 
+                            "Địa chỉ", 
+                            "SĐT", 
+                            "Email", 
+                            "Ngày sinh"
+                        };
+
+                        for (int i = 0; i < headers.length; i++) {
+                            Cell cell = headerRow.createCell(i);
+                            cell.setCellValue(headers[i]);
+                            cell.setCellStyle(headerStyle);
+                        }
+
+                        // Set cell style with borders
+                        CellStyle cellStyle = workbook.createCellStyle();
+                        cellStyle.setBorderBottom(BorderStyle.THIN);
+                        cellStyle.setBottomBorderColor(IndexedColors.BLACK.getIndex());
+                        cellStyle.setBorderTop(BorderStyle.THIN);
+                        cellStyle.setTopBorderColor(IndexedColors.BLACK.getIndex());
+                        cellStyle.setBorderLeft(BorderStyle.THIN);
+                        cellStyle.setLeftBorderColor(IndexedColors.BLACK.getIndex());
+                        cellStyle.setBorderRight(BorderStyle.THIN);
+                        cellStyle.setRightBorderColor(IndexedColors.BLACK.getIndex());
+
+                        // Write data to the Excel sheet
+                        List<Teacher> teachers = teacherService.getAllTeachers();
+                        if (teachers != null) {
+                            int rowNum = 1;
+                            for (Teacher teacherSelect : teachers) {
+                                Row row = sheet.createRow(rowNum++);
+                                for (int i = 0; i < headers.length; i++) {
+                                    Cell cell = row.createCell(i);
+                                    cell.setCellValue(getCellValueOfTeachers(teacherSelect, i));
+                                    cell.setCellStyle(cellStyle);
+                                }
+                            }
+                        }
+
+                        try ( FileOutputStream fileOut = new FileOutputStream(filePath)) {
+                            workbook.write(fileOut);
+                        } catch (Exception exs) {
+                            throw exs;
+                        }
+
+                        workbook.close();
+
+                        MessageDialog.showInfoDialog(this, "Xuất danh sách thành công! " + "\nNơi lưu: " + filePath, "Thông báo");
+                    }
+                }
+            }
+            else if(dataOfShowData.getTypeData().equalsIgnoreCase("tours")){
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setDialogTitle("Chọn vị trí để xuất file Excel");
+                fileChooser.setFileFilter(new FileNameExtensionFilter("Excel Files (*.xlsx)", "xlsx"));
+
+                int userSelection = fileChooser.showSaveDialog(this);
+
+                if (userSelection == JFileChooser.APPROVE_OPTION) {
+                    String filePath = fileChooser.getSelectedFile().getAbsolutePath();
+
+                    // Ensure the file has a .xlsx extension
+                    if (!filePath.toLowerCase().endsWith(".xlsx")) {
+                        filePath += ".xlsx";
+                    }
+
+                    File file = new File(filePath);
+
+                    // Check if the file already exists
+                    if (file.exists()) {
+                        MessageDialog.showErrorDialog(this, "Tên file đã tồn tại! Vui lòng chọn tên khác.", "Lỗi");
+                    } else {
+                        Workbook workbook = new XSSFWorkbook();
+                        Sheet sheet = workbook.createSheet("Danh sách các chuyến tham quan được tổ chức");
+
+                        // Create header row
+                        Row headerRow = sheet.createRow(0);
+
+                        CellStyle headerStyle = workbook.createCellStyle();
+                        headerStyle.setFillForegroundColor(IndexedColors.LIGHT_BLUE.getIndex());
+                        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+                        headerStyle.setAlignment(HorizontalAlignment.CENTER);
+
+                        Font headerFont = workbook.createFont();
+                        headerFont.setColor(IndexedColors.WHITE.getIndex());
+                        headerFont.setBold(true);
+                        headerStyle.setFont(headerFont);
+
+                        String[] headers = {
+                            "Mã chuyến", 
+                            "Tên chuyến", 
+                            "Thời gian", 
+                            "Mô tả",
+                            "Số lượng", 
+                            "Người đại diện", 
+                            "Công ty", 
+                            "Giáo viên"
+                        };
+
+                        for (int i = 0; i < headers.length; i++) {
+                            Cell cell = headerRow.createCell(i);
+                            cell.setCellValue(headers[i]);
+                            cell.setCellStyle(headerStyle);
+                        }
+
+                        // Set cell style with borders
+                        CellStyle cellStyle = workbook.createCellStyle();
+                        cellStyle.setBorderBottom(BorderStyle.THIN);
+                        cellStyle.setBottomBorderColor(IndexedColors.BLACK.getIndex());
+                        cellStyle.setBorderTop(BorderStyle.THIN);
+                        cellStyle.setTopBorderColor(IndexedColors.BLACK.getIndex());
+                        cellStyle.setBorderLeft(BorderStyle.THIN);
+                        cellStyle.setLeftBorderColor(IndexedColors.BLACK.getIndex());
+                        cellStyle.setBorderRight(BorderStyle.THIN);
+                        cellStyle.setRightBorderColor(IndexedColors.BLACK.getIndex());
+
+                        // Write data to the Excel sheet
+                        List<Tour> tours = tourService.getAllTours();
+                        if (tours != null) {
+                            int rowNum = 1;
+                            for (Tour tourSelect : tours) {
+                                Row row = sheet.createRow(rowNum++);
+                                for (int i = 0; i < headers.length; i++) {
+                                    Cell cell = row.createCell(i);
+                                    cell.setCellValue(getCellValueOfTours(tourSelect, i));
+                                    cell.setCellStyle(cellStyle);
+                                }
+                            }
+                        }
+
+                        try ( FileOutputStream fileOut = new FileOutputStream(filePath)) {
+                            workbook.write(fileOut);
+                        } catch (Exception exs) {
+                            throw exs;
+                        }
+
+                        workbook.close();
+
+                        MessageDialog.showInfoDialog(this, "Xuất danh sách thành công! " + "\nNơi lưu: " + filePath, "Thông báo");
+                    }
+                }
+            }
+            
+            else if(dataOfShowData.getTypeData().equalsIgnoreCase("studentTours")){
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setDialogTitle("Chọn vị trí để xuất file Excel");
+                fileChooser.setFileFilter(new FileNameExtensionFilter("Excel Files (*.xlsx)", "xlsx"));
+
+                int userSelection = fileChooser.showSaveDialog(this);
+
+                if (userSelection == JFileChooser.APPROVE_OPTION) {
+                    String filePath = fileChooser.getSelectedFile().getAbsolutePath();
+
+                    // Ensure the file has a .xlsx extension
+                    if (!filePath.toLowerCase().endsWith(".xlsx")) {
+                        filePath += ".xlsx";
+                    }
+
+                    File file = new File(filePath);
+
+                    // Check if the file already exists
+                    if (file.exists()) {
+                        MessageDialog.showErrorDialog(this, "Tên file đã tồn tại! Vui lòng chọn tên khác.", "Lỗi");
+                    } else {
+                        Workbook workbook = new XSSFWorkbook();
+                        Sheet sheet = workbook.createSheet("Danh sách sinh viên tham gia chuyến đi");
+
+                        // Create header row
+                        Row headerRow = sheet.createRow(0);
+
+                        CellStyle headerStyle = workbook.createCellStyle();
+                        headerStyle.setFillForegroundColor(IndexedColors.LIGHT_BLUE.getIndex());
+                        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+                        headerStyle.setAlignment(HorizontalAlignment.CENTER);
+
+                        Font headerFont = workbook.createFont();
+                        headerFont.setColor(IndexedColors.WHITE.getIndex());
+                        headerFont.setBold(true);
+                        headerStyle.setFont(headerFont);
+
+                        String[] headers = {
+                            "Mã sinh viên", 
+                            "Họ", 
+                            "Tên", 
+                            "Địa chỉ",
+                            "SĐT", 
+                            "Email", 
+                            "Ngày sinh", 
+                            "Lớp"
+                        };
+                        
+                        for (int i = 0; i < headers.length; i++) {
+                            Cell cell = headerRow.createCell(i);
+                            cell.setCellValue(headers[i]);
+                            cell.setCellStyle(headerStyle);
+                        }
+
+                        // Set cell style with borders
+                        CellStyle cellStyle = workbook.createCellStyle();
+                        cellStyle.setBorderBottom(BorderStyle.THIN);
+                        cellStyle.setBottomBorderColor(IndexedColors.BLACK.getIndex());
+                        cellStyle.setBorderTop(BorderStyle.THIN);
+                        cellStyle.setTopBorderColor(IndexedColors.BLACK.getIndex());
+                        cellStyle.setBorderLeft(BorderStyle.THIN);
+                        cellStyle.setLeftBorderColor(IndexedColors.BLACK.getIndex());
+                        cellStyle.setBorderRight(BorderStyle.THIN);
+                        cellStyle.setRightBorderColor(IndexedColors.BLACK.getIndex());
+
+                        // Write data to the Excel sheet
+                        List<Student> students_data = studentService.getStudentsByTourId(dataOfShowData.getTourId());
+                        if (students_data != null) {
+                            int rowNum = 1;
+                            for (Student studentSelect : students_data) {
+                                Row row = sheet.createRow(rowNum++);
+                                for (int i = 0; i < headers.length; i++) {
+                                    Cell cell = row.createCell(i);
+                                    cell.setCellValue(getCellValueOfStudentTours(studentSelect, i));
+                                    cell.setCellStyle(cellStyle);
+                                }
+                            }
+                        }
+
+                        try ( FileOutputStream fileOut = new FileOutputStream(filePath)) {
+                            workbook.write(fileOut);
+                        } catch (Exception exs) {
+                            throw exs;
+                        }
+
+                        workbook.close();
+
+                        MessageDialog.showInfoDialog(this, "Xuất danh sách thành công! " + "\nNơi lưu: " + filePath, "Thông báo");
+                    }
+                }
+            }
+            else if(dataOfShowData.getTypeData().equalsIgnoreCase("studentTookPlaceTours")){
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setDialogTitle("Chọn vị trí để xuất file Excel");
+                fileChooser.setFileFilter(new FileNameExtensionFilter("Excel Files (*.xlsx)", "xlsx"));
+
+                int userSelection = fileChooser.showSaveDialog(this);
+
+                if (userSelection == JFileChooser.APPROVE_OPTION) {
+                    String filePath = fileChooser.getSelectedFile().getAbsolutePath();
+
+                    // Ensure the file has a .xlsx extension
+                    if (!filePath.toLowerCase().endsWith(".xlsx")) {
+                        filePath += ".xlsx";
+                    }
+
+                    File file = new File(filePath);
+
+                    // Check if the file already exists
+                    if (file.exists()) {
+                        MessageDialog.showErrorDialog(this, "Tên file đã tồn tại! Vui lòng chọn tên khác.", "Lỗi");
+                    } else {
+                        Workbook workbook = new XSSFWorkbook();
+                        Sheet sheet = workbook.createSheet("Danh sách sinh viên của chuyến tham quan");
+
+                        // Create header row
+                        Row headerRow = sheet.createRow(0);
+
+                        CellStyle headerStyle = workbook.createCellStyle();
+                        headerStyle.setFillForegroundColor(IndexedColors.LIGHT_BLUE.getIndex());
+                        headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+                        headerStyle.setAlignment(HorizontalAlignment.CENTER);
+
+                        Font headerFont = workbook.createFont();
+                        headerFont.setColor(IndexedColors.WHITE.getIndex());
+                        headerFont.setBold(true);
+                        headerStyle.setFont(headerFont);
+
+                        String[] headers = {
+                            "Mã sinh viên", 
+                            "Họ", 
+                            "Tên", 
+                            "Địa chỉ",
+                            "SĐT", 
+                            "Email", 
+                            "Ngày sinh", 
+                            "Điểm đánh giá"
+                        };
+                        
+                        for (int i = 0; i < headers.length; i++) {
+                            Cell cell = headerRow.createCell(i);
+                            cell.setCellValue(headers[i]);
+                            cell.setCellStyle(headerStyle);
+                        }
+
+                        // Set cell style with borders
+                        CellStyle cellStyle = workbook.createCellStyle();
+                        cellStyle.setBorderBottom(BorderStyle.THIN);
+                        cellStyle.setBottomBorderColor(IndexedColors.BLACK.getIndex());
+                        cellStyle.setBorderTop(BorderStyle.THIN);
+                        cellStyle.setTopBorderColor(IndexedColors.BLACK.getIndex());
+                        cellStyle.setBorderLeft(BorderStyle.THIN);
+                        cellStyle.setLeftBorderColor(IndexedColors.BLACK.getIndex());
+                        cellStyle.setBorderRight(BorderStyle.THIN);
+                        cellStyle.setRightBorderColor(IndexedColors.BLACK.getIndex());
+
+                        // Write data to the Excel sheet
+                        
+                        List<Student> students = studentService.getStudentsByTourId(dataOfShowData.getTourId());
+                        if (students != null) {
+                            int rowNum = 1;
+                            for (Student studentSelect : students) {
+                                Row row = sheet.createRow(rowNum++);
+                                for (int i = 0; i < headers.length; i++) {
+                                    Cell cell = row.createCell(i);
+                                    cell.setCellValue(getCellValueOfStudentTookPlaceTours(studentSelect, i));
+                                    cell.setCellStyle(cellStyle);
+                                }
+                            }
+                        }
+
+                        try ( FileOutputStream fileOut = new FileOutputStream(filePath)) {
+                            workbook.write(fileOut);
+                        } catch (Exception exs) {
+                            throw exs;
+                        }
+
+                        workbook.close();
+
+                        MessageDialog.showInfoDialog(this, "Xuất danh sách thành công! " + "\nNơi lưu: " + filePath, "Thông báo");
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }//GEN-LAST:event_exportExcelFileButtonActionPerformed
 
+    private String getCellValueOfTourTeacher(Tour tour, int columnIndex)throws Exception{
+        switch (columnIndex) {
+            case 0:
+                return tour.getCode();
+            case 1:
+                return tour.getName();
+            case 2:
+                return tour.getStartDate();
+            case 3:
+                return tourService.getCompanyNameById(tour.getCompanyId());
+            case 4:
+                return String.valueOf(studentTourService.getNumberOfStudents(tour.getId()));
+            default:
+                return "";
+        }
+    }
+    
+    private String getCellValueOfTourStudent(Tour tour , int columnIndex) throws Exception{
+        switch (columnIndex) {
+            case 0:
+                return tour.getCode();
+            case 1:
+                return tour.getName();
+            case 2:
+                return tour.getDescription();
+            case 3: 
+                return tour.getStartDate();
+            case 4:
+                return String.valueOf(tour.getAvailables());
+            case 5:
+                return tourService.getCompanyNameById(tour.getCompanyId());
+            case 6:
+                return tourService.getTeacherNameById(tour.getTeacherId());
+            case 7:
+                return tour.getPresentator();
+            default:
+                return "";
+        }
+    }
+    
+    private String getCellValueOfStudents(Student student , int columnIndex) throws Exception{
+        switch(columnIndex){
+            case 0:
+                return student.getCode();
+            case 1:
+                return student.getLastName();
+            case 2:
+                return student.getFirstName();
+            case 3:
+                return student.getAddress();
+            case 4:
+                return student.getPhoneNumber();
+            case 5:
+                return student.getEmail();
+            case 6:
+                return student.getBirthDate();
+            case 7:
+                return studentService.getStudentClassNameById(student.getClassId());
+            default:
+                return "";
+        }
+    }
+    
+    private String getCellValueOfCompanys(Company company , int columnIndex) throws Exception{
+        switch(columnIndex){
+            case 0:
+                return company.getCode();
+            case 1:
+                return company.getName();
+            case 2:
+                return company.getAddress();
+            case 3:
+                return company.getEmail();
+            case 4:
+                return company.getPhoneNumber();
+            case 5:
+                return company.getDescription();
+            default:
+                return "";
+        }
+    }
+    
+    private String getCellValueOfTeachers(Teacher teacher , int columnIndex) throws Exception{
+        switch(columnIndex){
+            case 0: 
+                return teacher.getCode();
+            case 1:
+                return teacher.getLastName() + " " + teacher.getFirstName();
+            case 2:
+                return teacher.getAddress();
+            case 3:
+                return teacher.getPhoneNumber();
+            case 4:
+                return teacher.getEmail();
+            case 5:
+                return teacher.getBirthDate();
+            default:
+                return "";
+        }
+        
+    }
+    
+    private String getCellValueOfTours(Tour tour , int columnIndex) throws Exception{
+        switch (columnIndex) {
+        case 0:
+            return tour.getCode();
+        case 1:
+            return tour.getName();
+        case 2:
+            return tour.getStartDate();
+        case 3: 
+            return tour.getDescription();
+        case 4:
+            return String.valueOf(tour.getAvailables());
+        case 5:
+            return tour.getPresentator();
+        case 6:
+            return tourService.getCompanyNameById(tour.getCompanyId());
+        case 7:
+            return tourService.getTeacherNameById(tour.getTeacherId());
+        default:
+            return "";
+        }
+    }
+    
+    private String getCellValueOfStudentTours(Student student , int columnIndex) throws Exception{
+        
+        switch(columnIndex){
+            case 0:
+                return student.getCode();
+            case 1:
+                return student.getLastName();
+            case 2:
+                return student.getFirstName();
+            case 3:
+                return student.getAddress();
+            case 4:
+                return student.getPhoneNumber();
+            case 5:
+                return student.getEmail();
+            case 6:
+                return student.getBirthDate();
+            case 7:
+                return studentService.getStudentClassNameById(student.getClassId());
+            default:
+                return "";
+        }
+    }
+    
+    private String getCellValueOfStudentTookPlaceTours(Student student , int columnIndex) throws Exception{
+        switch(columnIndex){
+        case 0:
+            return student.getCode();
+        case 1:
+            return student.getLastName();
+        case 2:
+            return student.getFirstName();
+        case 3:
+            return student.getAddress();
+        case 4:
+            return student.getPhoneNumber();
+        case 5:
+            return student.getEmail();
+        case 6:
+            return student.getBirthDate();
+        case 7:
+            return String.valueOf(studentTourService.geStudentTourByStudentId(student.getId()).getRate());
+        default:
+            return "";
+        }
+    }
+    
     private void backButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_backButtonActionPerformed
         dispose();
         if(dataOfShowData.getBackToPage().equalsIgnoreCase("managetoursofteacher")){
@@ -311,36 +1289,280 @@ public class ShowData extends javax.swing.JFrame {
     }//GEN-LAST:event_backButtonActionPerformed
 
     private void searchButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_searchButtonActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_searchButtonActionPerformed
-
-    private DefaultTableModel tableModel;
-    
-    private void loadTableData() {
         try {
-            if(dataOfShowData.getTypeData() != null && dataOfShowData.getBackToPage() != null){
-                tableModel.setRowCount(0);
+            String keyword = searchInput.getText().trim();
+            int count = 0;
+            if (keyword.trim().equals("")) {
+                checkAndInitializeTable();
+                return;
             }
-            if(dataOfShowData.getTypeData().equalsIgnoreCase("students")){
-                loadStudentsData();
-            }else if(dataOfShowData.getTypeData().equalsIgnoreCase("studentTours")){
-                loadStudentToursData();
-            }else if(dataOfShowData.getTypeData().equalsIgnoreCase("tours")){
-                loadToursData();
-            }else if(dataOfShowData.getTypeData().equalsIgnoreCase("companys")){
-                loadCompanysData();
-            }else if(dataOfShowData.getTypeData().equalsIgnoreCase("teachers")){
-                loadTeachersData();
-            }else if(dataOfShowData.getTypeData().equalsIgnoreCase("toursOfTeachers")){
-                loadTableToursOfTeacherData();
-            }else if(dataOfShowData.getTypeData().equalsIgnoreCase("toursOfStudents")){
-                loadTableToursOfStudentData();
+            
+            if(dataOfShowData.getTypeData().equalsIgnoreCase("toursOfTeachers")){
+                    List<Tour> tour_data = tourService.getToursByTeacherId(dataOfShowData.getTeacherId());
+                    List<Company> company_data = companyService.getAllCompanies();
+                    List<Teacher> teacher_data = teacherService.getAllTeachers();
+                    tableModel.setRowCount(0);
+                    if (tour_data != null) {
+                        for (Tour tour : tour_data) {
+                            String companyName = "";
+                            String teacherName = "";
+                            int numberOfStudents = studentTourService.getNumberOfStudents(tour.getId());
+                            for (Company comp : company_data) {
+                                if (comp.getId() == tour.getCompanyId()) {
+                                    companyName = comp.getName();
+                                }
+                            }
+                            for (Teacher tea : teacher_data) {
+                                if (tea.getId() == tour.getTeacherId()) {
+                                    teacherName = tea.getLastName() + " " + tea.getFirstName();
+                                }
+                            }
+                            if (keyword.equalsIgnoreCase(companyName) || keyword.equalsIgnoreCase(tour.getName()) || keyword.equalsIgnoreCase(tour.getCode())) {
+                                tableModel.addRow(new Object[]{
+                                tour.getCode(), 
+                                tour.getName(), 
+                                tour.getStartDate(),
+                                companyName,
+                                numberOfStudents
+                                });
+                            } else {
+                                count++;
+                            }
+                        }
+                        if (count == tour_data.size()) {
+                            MessageDialog.showInfoDialog(dataTable, "Không tìm thấy chuyến tham quan doanh nghiệp bạn cần tìm", "Thông báo");
+                            checkAndInitializeTable();
+                        }
+                    }
+                }
+            else if(dataOfShowData.getTypeData().equalsIgnoreCase("toursOfStudents")){
+                List<Tour> tour_data = tourService.getToursByStudentId(dataOfShowData.getStudentId());
+                    List<Company> company_data = companyService.getAllCompanies();
+                    List<Teacher> teacher_data = teacherService.getAllTeachers();
+                    tableModel.setRowCount(0);
+                    if (tour_data != null) {
+                        for (Tour tour : tour_data) {
+                            String companyName = "";
+                            String teacherName = "";
+                            for (Company comp : company_data) {
+                                if (comp.getId() == tour.getCompanyId()) {
+                                    companyName = comp.getName();
+                                }
+                            }
+                            for (Teacher tea : teacher_data) {
+                                if (tea.getId() == tour.getTeacherId()) {
+                                    teacherName = tea.getLastName() + " " + tea.getFirstName();
+                                }
+                            }
+                            if (keyword.equalsIgnoreCase(companyName) || keyword.equalsIgnoreCase(tour.getName()) || keyword.equalsIgnoreCase(tour.getCode())) {
+                                tableModel.addRow(new Object[]{
+                                tour.getCode(), 
+                                tour.getName(), 
+                                tour.getDescription(),
+                                tour.getStartDate(),
+                                tour.getAvailables(),
+                                companyName,
+                                teacherName,
+                                tour.getPresentator()
+                                });
+                            } else {
+                                count++;
+                            }
+                        }
+                        if (count == tour_data.size()) {
+                            MessageDialog.showInfoDialog(dataTable, "Không tìm thấy chuyến tham quan doanh nghiệp bạn cần tìm", "Thông báo");
+                            checkAndInitializeTable();
+                        }
+                    }
+            }
+            else if (dataOfShowData.getTypeData().equalsIgnoreCase("studentTours")) {
+                Tour tour = tourService.getTourById(dataOfShowData.getTourId());
+                if (tour != null) {
+                    List<StudentTour> data_students_tour = studentTourService.getAllStudentToursByTourId(tour.getId());
+                    List<Student> data = studentService.getStudentsByTourId(tour.getId());
+                            
+                    tableModel.setRowCount(0);
+                    if (data != null && data_students_tour != null) {
+                        for (Student stu : data) {
+                            String className = studentService.getStudentClassNameById(stu.getClassId());
+                            for (StudentTour item : data_students_tour) {
+                                if (stu.getId() == item.getStudentId()) {
+                                    if (stu.getFirstName().equalsIgnoreCase(keyword) || stu.getLastName().equalsIgnoreCase(keyword) || keyword.equalsIgnoreCase(stu.getLastName() + stu.getFirstName()) || keyword.equalsIgnoreCase(stu.getCode())) {
+                                        tableModel.addRow(new Object[]{
+                                            stu.getCode(), 
+                                            stu.getLastName(), 
+                                            stu.getFirstName(), 
+                                            stu.getAddress(), 
+                                            stu.getPhoneNumber(), 
+                                            stu.getEmail(), 
+                                            stu.getBirthDate(),
+                                            className
+                                        });
+                                    } else {
+                                        count++;
+                                    }
+                                }
+                            }
+                        }
+                        if (count == data_students_tour.size()) {
+                            MessageDialog.showInfoDialog(dataTable, "Không tìm thấy sinh viên bạn cần tìm", "Thông báo");
+                            checkAndInitializeTable();
+                        }
+                    }
+                }
+            }
+            else if(dataOfShowData.getTypeData().equalsIgnoreCase("tours")){
+                List<Tour> tour_data = tourService.getAllTours();
+                List<Company> company_data = companyService.getAllCompanies();
+                List<Teacher> teacher_data = teacherService.getAllTeachers();
+                tableModel.setRowCount(0);
+                if (tour_data != null) {
+                    for (Tour tour : tour_data) {
+                        String companyName = "";
+                        String teacherName = "";
+                        for (Company comp : company_data) {
+                            if (comp.getId() == tour.getCompanyId()) {
+                                companyName = comp.getName();
+                            }
+                        }
+                        for (Teacher tea : teacher_data) {
+                            if (tea.getId() == tour.getTeacherId()) {
+                                teacherName = tea.getLastName() + " " + tea.getFirstName();
+                            }
+                        }
+                        if (keyword.equalsIgnoreCase(teacherName) || keyword.equalsIgnoreCase(companyName) || keyword.equalsIgnoreCase(tour.getName()) || keyword.equalsIgnoreCase(tour.getCode())) {
+                            tableModel.addRow(new Object[]{
+                            tour.getCode(), 
+                            tour.getName(), 
+                            tour.getStartDate(),
+                            tour.getDescription(),
+                            tour.getAvailables(),
+                            tour.getPresentator(), 
+                            companyName, 
+                            teacherName 
+                            });
+                        } else {
+                            count++;
+                        }
+                    }
+                    if (count == tour_data.size()) {
+                        MessageDialog.showInfoDialog(dataTable, "Không tìm thấy chuyến tham quan doanh nghiệp bạn cần tìm", "Thông báo");
+                        checkAndInitializeTable();
+                    }
+                }
+            }
+            else if(dataOfShowData.getTypeData().equalsIgnoreCase("students")){
+                List<Student> data = studentService.getAllStudents();
+                tableModel.setRowCount(0);
+                if (data != null) {
+                    for (Student stu : data) {
+                        if (stu.getFirstName().equalsIgnoreCase(keyword) || stu.getLastName().equalsIgnoreCase(keyword) || keyword.equalsIgnoreCase(stu.getLastName() + stu.getFirstName()) || keyword.equalsIgnoreCase(stu.getCode())) {
+                            tableModel.addRow(new Object[]{
+                                stu.getCode(), 
+                                stu.getLastName(), 
+                                stu.getFirstName(), 
+                                stu.getAddress(), 
+                                stu.getPhoneNumber(), 
+                                stu.getEmail(), 
+                                stu.getBirthDate(),
+                                classroomService.getClassNameById(stu.getClassId())
+                            });
+                        } else {
+                            count++;
+                        }
+                    }
+                    if (count == data.size()) {
+                        MessageDialog.showInfoDialog(dataTable, "Không tìm thấy sinh viên bạn cần tìm", "Thông báo");
+                        checkAndInitializeTable();
+                    }
+                }
+            }
+            else if(dataOfShowData.getTypeData().equalsIgnoreCase("companys")){
+                List<Company> data = companyService.getAllCompanies();
+                tableModel.setRowCount(0);
+                if(data != null){
+                    for(Company com : data){
+                        if (com.getName().equalsIgnoreCase(keyword) || keyword.equalsIgnoreCase(com.getCode())) {
+                            tableModel.addRow(new Object[]{
+                                com.getCode(), 
+                                com.getName(), 
+                                com.getAddress(),
+                                com.getEmail(), 
+                                com.getPhoneNumber(),
+                                com.getDescription()});
+                        } else {
+                            count++;
+                        }
+                    }
+                    if (count == data.size()) {
+                        MessageDialog.showInfoDialog(dataTable, "Không tìm thấy doanh nghiệp bạn cần tìm", "Thông báo");
+                        checkAndInitializeTable();
+                    }
+                }
+            }
+            else if (dataOfShowData.getTypeData().equalsIgnoreCase("teachers")){
+                List<Teacher> data = teacherService.getAllTeachers();
+                tableModel.setRowCount(0);
+                if(data != null){
+                    for(Teacher tea : data){
+                        if(tea.getFirstName().equalsIgnoreCase(keyword) || tea.getLastName().equalsIgnoreCase(keyword) || keyword.equalsIgnoreCase(tea.getLastName() + tea.getFirstName()) || keyword.equalsIgnoreCase(tea.getCode())){
+                            tableModel.addRow(new Object[]{
+                                tea.getCode(),
+                                tea.getLastName() + " " +tea.getFirstName(),
+                                tea.getAddress(),
+                                tea.getPhoneNumber(),
+                                tea.getEmail(),
+                                tea.getBirthDate()
+                            });
+                        }else{
+                            count++;
+                        }
+                    }
+                    if(count == data.size()){
+                        MessageDialog.showInfoDialog(dataTable, "Không tìm thấy giáo viên bạn cần tìm", "Thông báo");
+                        checkAndInitializeTable();
+                    }
+                }
+            }
+            else if (dataOfShowData.getTypeData().equalsIgnoreCase("studentTookPlaceTours")) {
+                Tour tour = tourService.getTourById(dataOfShowData.getTourId());
+                if (tour != null) {
+                    List<StudentTour> data_students_tour = studentTourService.getAllStudentToursByTourId(tour.getId());
+                    List<Student> data = studentService.getAllStudents();
+                    tableModel.setRowCount(0);
+                    if (data != null && data_students_tour != null) {
+                        for (Student stu : data) {
+                            for (StudentTour item : data_students_tour) {
+                                if (stu.getId() == item.getStudentId()) {
+                                    if (stu.getFirstName().equalsIgnoreCase(keyword) || stu.getLastName().equalsIgnoreCase(keyword) || keyword.equalsIgnoreCase(stu.getLastName() + stu.getFirstName()) || keyword.equalsIgnoreCase(stu.getCode())) {
+                                        tableModel.addRow(new Object[]{
+                                            stu.getCode(), 
+                                            stu.getLastName(), 
+                                            stu.getFirstName(), 
+                                            stu.getAddress(), 
+                                            stu.getPhoneNumber(), 
+                                            stu.getEmail(), 
+                                            stu.getBirthDate()
+                                        });
+                                    } else {
+                                        count++;
+                                    }
+                                }
+                            }
+                        }
+                        if (count == data_students_tour.size()) {
+                            MessageDialog.showInfoDialog(dataTable, "Không tìm thấy sinh viên bạn cần tìm", "Thông báo");
+                            checkAndInitializeTable();
+                        }
+                    }
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-    
+    }//GEN-LAST:event_searchButtonActionPerformed
+    private DefaultTableModel tableModel;
+
     private void loadTableToursOfStudentData() throws Exception{
         try {
             List<Tour> data = tourService.getToursByStudentId(dataOfShowData.getStudentId());
@@ -421,7 +1643,14 @@ public class ShowData extends javax.swing.JFrame {
             for(Student stu : students_data){
                 Classroom classroom = classroomService.getClassNameById(stu.getClassId());
                 String className = classroom.getName();
-                tableModel.addRow(new Object[]{stu.getCode(), stu.getLastName(), stu.getFirstName(), stu.getAddress(), stu.getPhoneNumber(), stu.getEmail(), stu.getBirthDate(), className});
+                tableModel.addRow(new Object[]{stu.getCode(), 
+                    stu.getLastName(), 
+                    stu.getFirstName(), 
+                    stu.getAddress(), 
+                    stu.getPhoneNumber(), 
+                    stu.getEmail(), 
+                    stu.getBirthDate(), 
+                    className});
             }
         }
     }
@@ -488,7 +1717,6 @@ public class ShowData extends javax.swing.JFrame {
             if(teachers_data != null){
                 for(Teacher teacher : teachers_data){
                     String fullName = teacher.getLastName() + " " + teacher.getFirstName();
-                    
                     tableModel.addRow(new Object[]{
                         teacher.getCode(),
                         fullName,
@@ -508,17 +1736,21 @@ public class ShowData extends javax.swing.JFrame {
     private void loadStudentsAwaitingFeedback(String type) throws Exception {
         Tour tour = tourService.getTourById(dataOfShowData.getTourId());
         List<StudentTour> data = studentTourService.getAllStudentToursByTourId(tour.getId());
-        List<Student> students = studentService.getAllStudents();
+        List<Student> students = studentService.getStudentsByTourId(dataOfShowData.getTourId());
 
         if (data != null && students != null && !data.isEmpty()) {
             for (Student stu : students) {
-                for (StudentTour studentTour : data) {
-                    if (studentTour.getStudentId() == stu.getId() && type.equalsIgnoreCase("=") && studentTour.getRate() == 0) {
-                        tableModel.addRow(new Object[]{stu.getCode(), stu.getLastName(), stu.getFirstName(), stu.getAddress(), stu.getPhoneNumber(), stu.getEmail(), stu.getBirthDate(), studentTour.getRate()});
-                    } else if (studentTour.getStudentId() == stu.getId() && type.equalsIgnoreCase(">") && studentTour.getRate() > 0) {
-                        tableModel.addRow(new Object[]{stu.getCode(), stu.getLastName(), stu.getFirstName(), stu.getAddress(), stu.getPhoneNumber(), stu.getEmail(), stu.getBirthDate(), studentTour.getRate()});
-                    }
-                }
+                StudentTour studentTour = studentTourService.geStudentTourByStudentId(stu.getId());
+                    tableModel.addRow(new Object[]{
+                        stu.getCode(), 
+                        stu.getLastName(), 
+                        stu.getFirstName(), 
+                        stu.getAddress(), 
+                        stu.getPhoneNumber(), 
+                        stu.getEmail(), 
+                        stu.getBirthDate(), 
+                        studentTour.getRate()
+                    });
             }
         }
     }

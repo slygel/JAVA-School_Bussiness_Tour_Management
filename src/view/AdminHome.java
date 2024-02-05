@@ -167,7 +167,7 @@ public class AdminHome extends javax.swing.JFrame {
         manageTourBtn.setBackground(new java.awt.Color(0, 102, 102));
         manageTourBtn.setFont(new java.awt.Font("Tahoma", 1, 28)); // NOI18N
         manageTourBtn.setForeground(new java.awt.Color(255, 255, 255));
-        manageTourBtn.setText("Quản lí thăm quan doanh nghiệp");
+        manageTourBtn.setText("Quản lí tham quan doanh nghiệp");
         manageTourBtn.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 manageTourBtnActionPerformed(evt);
@@ -276,7 +276,7 @@ public class AdminHome extends javax.swing.JFrame {
         teacherDataButton.setBackground(new java.awt.Color(0, 102, 0));
         teacherDataButton.setFont(new java.awt.Font("Tahoma", 1, 28)); // NOI18N
         teacherDataButton.setForeground(new java.awt.Color(255, 255, 255));
-        teacherDataButton.setText("Giáo viên đại diện doanh nghiệp");
+        teacherDataButton.setText("Giáo viên đại diện nhà trường");
         teacherDataButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 teacherDataButtonActionPerformed(evt);

@@ -24,6 +24,10 @@ public class StudentTourService {
         return studentTourDao.getAllStudentToursByStudentId(studentId);
     }
     
+    public StudentTour geStudentTourByStudentId(int studentId){
+        return studentTourDao.geStudentTourByStudentId(studentId);
+    }
+    
     public void addStudentTour(StudentTour studentTour){
         studentTourDao.addStudentTour(studentTour);
     }

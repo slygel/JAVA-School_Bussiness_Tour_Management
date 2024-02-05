@@ -93,7 +93,7 @@
       <Layout>
         <DimensionLayout dim="0">
           <Group type="103" groupAlignment="0" attributes="0">
-              <Group type="102" alignment="1" attributes="0">
+              <Group type="102" attributes="0">
                   <EmptySpace pref="37" max="32767" attributes="0"/>
                   <Group type="103" groupAlignment="0" attributes="0">
                       <Component id="welcomeLabel" min="-2" max="-2" attributes="0"/>
@@ -108,7 +108,7 @@
                   <EmptySpace min="-2" pref="37" max="-2" attributes="0"/>
               </Group>
               <Group type="102" alignment="0" attributes="0">
-                  <EmptySpace min="-2" pref="122" max="-2" attributes="0"/>
+                  <EmptySpace min="-2" pref="134" max="-2" attributes="0"/>
                   <Component id="logOutBtn" min="-2" pref="312" max="-2" attributes="0"/>
                   <EmptySpace max="32767" attributes="0"/>
               </Group>
@@ -298,6 +298,9 @@
         </Property>
         <Property name="text" type="java.lang.String" value="Danh s&#xe1;ch sinh vi&#xea;n tham gia tham quan"/>
       </Properties>
+      <Events>
+        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="showStudentsOfTourActionPerformed"/>
+      </Events>
     </Component>
     <Component class="javax.swing.JButton" name="ratedTour">
       <Properties>

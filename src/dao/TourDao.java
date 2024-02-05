@@ -444,6 +444,36 @@ public class TourDao {
         return tour;
     }
     
+    public Tour getTourByStudentId(int studentId){
+        String sql = "SELECT tbl_tour.id,tbl_tour.code,tbl_tour.name,tbl_tour.description,tbl_tour.startDate,tbl_tour.companyId,tbl_tour.teacherId,tbl_tour.presentator,tbl_tour.availables \n" +
+                    "FROM tbl_tour JOIN tbl_student_tour ON tbl_student_tour.tourId = tbl_tour.id JOIN tbl_student ON tbl_student.id = tbl_student_tour.studentId\n" +
+                    "WHERE tbl_student.id = ?";
+        Tour tour = new Tour();
+        try {
+            Connection connection = JDBCUtil.getConnection();
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+            preparedStatement.setInt(1, studentId);
+            
+            ResultSet resultSet = preparedStatement.executeQuery();
+            
+            while (resultSet.next()) {
+                tour.setId(resultSet.getInt("id"));
+                tour.setCode(resultSet.getString("code"));
+                tour.setName(resultSet.getString("name"));
+                tour.setDescription(resultSet.getString("description"));
+                tour.setStartDate(resultSet.getString("startDate"));
+                tour.setCompanyId(resultSet.getInt("companyId"));
+                tour.setTeacherId(resultSet.getInt("teacherId"));
+                tour.setPresentator(resultSet.getString("presentator"));
+                tour.setAvailables(resultSet.getInt("availables"));
+            }
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return tour;
+    }
+    
     public void deleteTourOfTeacher(List<Tour> tours){
         String sql = "UPDATE tbl_tour SET teacherId = NULL WHERE code = ? AND teacherId = ?";
         try {

@@ -5,8 +5,16 @@ import static exception.Validator.isDate;
 import static exception.Validator.isNumeric;
 import static exception.Validator.isValidEmail;
 import java.awt.Image;
+import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import javax.swing.ImageIcon;
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.DefaultTableModel;
 import models.*;
 import services.*;
@@ -120,6 +128,11 @@ public class ManageListStudentClass extends javax.swing.JFrame {
         imageBrowse.setFont(new java.awt.Font("Tahoma", 1, 24)); // NOI18N
         imageBrowse.setForeground(new java.awt.Color(255, 255, 255));
         imageBrowse.setText("Tải ảnh lên");
+        imageBrowse.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                imageBrowseActionPerformed(evt);
+            }
+        });
 
         jLabel1.setFont(new java.awt.Font("Tahoma", 1, 24)); // NOI18N
         jLabel1.setText("Mã sinh viên:");
@@ -475,6 +488,43 @@ public class ManageListStudentClass extends javax.swing.JFrame {
             e.printStackTrace();
         }
     }//GEN-LAST:event_btn_deleteActionPerformed
+
+    private void imageBrowseActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_imageBrowseActionPerformed
+        JFileChooser browseImageFile = new JFileChooser();
+
+        FileNameExtensionFilter fnef = new FileNameExtensionFilter("IMAGES", "png", "jpeg", "jpg", "jfif", "svg");
+        browseImageFile.addChoosableFileFilter(fnef);
+
+        int showOpenDialogue = browseImageFile.showOpenDialog(null);
+
+        if (showOpenDialogue == JFileChooser.APPROVE_OPTION) {
+            File selectedImageFile = browseImageFile.getSelectedFile();
+
+            // Tạo đường dẫn mới cho tập tin hình ảnh đến thư mục đích
+            Path currentDirectory = Paths.get("").toAbsolutePath();
+            Path destinationDirectory = currentDirectory.resolve(Paths.get("src", "images"));
+            Path destinationPath = destinationDirectory.resolve(selectedImageFile.getName());
+
+            try {
+                // Sao chép tập tin vào thư mục đích
+                Files.copy(selectedImageFile.toPath(), destinationPath, StandardCopyOption.REPLACE_EXISTING);
+                JOptionPane.showMessageDialog(null, "Tải tệp thành công");
+
+                // Lấy đường dẫn tương đối của tập tin đã lưu
+                Path relativePath = currentDirectory.relativize(destinationPath);
+                selectedImagePath = relativePath.toString();
+
+                // Hiển thị ảnh
+                ImageIcon imageIcon = new ImageIcon(selectedImageFile.toURI().toURL()); // Chuyển đổi File thành URL
+                Image image = imageIcon.getImage().getScaledInstance(imageLabel.getWidth(), imageLabel.getHeight(), Image.SCALE_SMOOTH);
+                imageIcon = new ImageIcon(image);
+                imageLabel.setIcon(imageIcon);
+            } catch (Exception e) {
+                e.printStackTrace();
+                JOptionPane.showMessageDialog(null, "Có lỗi trong quá trình lưu tệp");
+            }
+        }
+    }//GEN-LAST:event_imageBrowseActionPerformed
 
     public static void main(String args[]) {
         java.awt.EventQueue.invokeLater(new Runnable() {

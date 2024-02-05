@@ -244,7 +244,7 @@
             <Property name="foreground" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
               <Color blue="ff" green="ff" red="ff" type="rgb"/>
             </Property>
-            <Property name="text" type="java.lang.String" value="Qu&#x1ea3;n l&#xed; th&#x103;m quan doanh nghi&#x1ec7;p"/>
+            <Property name="text" type="java.lang.String" value="Qu&#x1ea3;n l&#xed; tham quan doanh nghi&#x1ec7;p"/>
           </Properties>
           <Events>
             <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="manageTourBtnActionPerformed"/>
@@ -356,7 +356,7 @@
         <Property name="foreground" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
           <Color blue="ff" green="ff" red="ff" type="rgb"/>
         </Property>
-        <Property name="text" type="java.lang.String" value="Gi&#xe1;o vi&#xea;n &#x111;&#x1ea1;i di&#x1ec7;n doanh nghi&#x1ec7;p"/>
+        <Property name="text" type="java.lang.String" value="Gi&#xe1;o vi&#xea;n &#x111;&#x1ea1;i di&#x1ec7;n nh&#xe0; tr&#x1b0;&#x1edd;ng"/>
       </Properties>
       <Events>
         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="teacherDataButtonActionPerformed"/>

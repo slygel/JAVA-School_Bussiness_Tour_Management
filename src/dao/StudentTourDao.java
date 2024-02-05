@@ -72,6 +72,26 @@ public class StudentTourDao {
         return studentTours;
     }
     
+    public StudentTour geStudentTourByStudentId(int studentId){
+        String sql = "SELECT * FROM tbl_student_tour WHERE studentId = ?";
+        StudentTour studentTour = new StudentTour();
+        try {
+            Connection connection = JDBCUtil.getConnection();
+            PreparedStatement preparedStatement = connection.prepareStatement(sql);
+            preparedStatement.setInt(1, studentId);
+            
+            ResultSet rs = preparedStatement.executeQuery();
+            while(rs.next()){
+                studentTour.setStudentId(rs.getInt("studentId"));
+                studentTour.setTourId(rs.getInt("tourId"));
+                studentTour.setRate(rs.getInt("rate"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return studentTour;
+    }
+    
     public void addStudentTour(StudentTour studentTour){
         String sql = "INSERT INTO tbl_student_tour (studentId,tourId,rate) VALUES (?,?,?)";
         try {
