@@ -321,7 +321,6 @@ public class ManageTourStudent extends javax.swing.JFrame {
             RateStudentResult rateScreen = new RateStudentResult(selectedTour,student);
             rateScreen.setVisible(true);
         } catch (Exception ex) {
-            MessageDialog.showErrorDialog(this, "Có lỗi, chi tiết: " + ex.getMessage() + "\n" + ex.toString() + "\n", "Phát hiện lỗi");
             ex.printStackTrace();
         }
     }//GEN-LAST:event_rateStudentButtonActionPerformed
